@@ -547,6 +547,256 @@ git config --global push.default simple
 # Configurar pull behavior  
 git config --global pull.rebase false
 ```
+# Configuración de Ramas de Aprobación y Protección de Main
+
+## Implementación de la Rama Approvals
+
+El repositorio ha sido configurado con una estructura de ramas que incluye la creación de la rama `approvals` como rama de desarrollo principal, donde los colaboradores realizan su trabajo antes de enviar cambios a producción.
+
+### Creación de la Rama Approvals
+
+La rama `approvals` fue creada siguiendo el siguiente procedimiento:
+
+```bash
+# Se posicionó en la rama main
+git checkout main
+git pull origin main
+
+# Se creó y cambió a la nueva rama approvals
+git checkout -b approvals
+
+# Se subió la rama al repositorio remoto
+git push -u origin approvals
+```
+
+### Configuración como Rama por Defecto
+
+Para facilitar el trabajo de los desarrolladores, se configuró `approvals` como rama por defecto del repositorio:
+
+1. Se accedió a **Settings** → **Branches** en GitHub
+2. En **Default branch**, se cambió de `main` a `approvals`
+3. Se confirmó el cambio
+
+Esta configuración permite que los nuevos colaboradores clonen directamente la rama de desarrollo sin necesidad de cambiar manualmente de rama.
+
+## Implementación de Protección en Rama Main
+
+### Configuración de Branch Protection Rules
+
+La rama `main` fue protegida mediante la implementación de reglas de protección que evitan pushes directos y garantizan que todos los cambios pasen por un proceso de revisión.
+
+#### Proceso de Configuración
+
+El administrador del repositorio implementó las siguientes reglas accediendo a **Settings** → **Branches** y creando una nueva regla para la rama `main`:
+
+**Configuraciones Principales Aplicadas:**
+- **Require a pull request before merging**: Activado
+  - Require approvals: Configurado en `1` aprobación mínima
+  - Dismiss stale PR approvals when new commits are pushed: Activado
+  - Require review from code owners: Configurado según necesidades del proyecto
+
+**Restricciones Adicionales Implementadas:**
+- **Restrict pushes that create files**: Activado
+- **Do not allow bypassing the above settings**: Activado
+- **Include administrators**: Activado para máxima seguridad
+
+#### Configuraciones Complementarias
+
+Se implementaron las siguientes configuraciones adicionales para optimizar el flujo de trabajo:
+
+```
+✅ Require status checks to pass before merging
+✅ Require branches to be up to date before merging
+✅ Require linear history
+✅ Delete head branches automatically
+```
+
+## Configuración de Repositorio Público
+
+### Requisito de Visibilidad Pública
+
+Debido a que las reglas de protección de ramas requieren una licencia GitHub Pro para repositorios privados, se procedió a configurar el repositorio como público para habilitar estas funcionalidades sin costo adicional.
+
+#### Proceso de Cambio de Visibilidad
+
+El repositorio fue configurado como público mediante el siguiente proceso:
+
+1. Se accedió a **Settings** → **General**
+2. Se navegó hasta la sección **Danger Zone**
+3. Se seleccionó **Change repository visibility**
+4. Se eligió la opción **Make public**
+5. Se confirmó el cambio escribiendo el nombre del repositorio
+
+#### Medidas de Seguridad Implementadas
+
+Previo al cambio de visibilidad, se implementaron las siguientes medidas de seguridad:
+
+- Se removieron credenciales y claves API del código fuente
+- Se revisaron archivos de configuración para eliminar información sensible
+- Se actualizó el archivo `.gitignore` para excluir datos confidenciales
+- Se documentó claramente el propósito académico del proyecto
+
+## Flujo de Trabajo Implementado
+
+### Estructura de Trabajo para Desarrolladores
+
+Con la configuración implementada, los desarrolladores siguen el siguiente flujo de trabajo:
+
+#### Configuración Inicial del Desarrollador
+```bash
+# Al clonar el repositorio, automáticamente se posiciona en approvals
+git clone https://github.com/martinizin/gitFlow.git
+cd gitFlow
+
+# Verificación de rama actual (debe ser approvals)
+git branch
+```
+
+#### Desarrollo de Nuevas Funcionalidades
+```bash
+# Creación de rama de feature desde approvals
+git checkout -b feature/nueva-funcionalidad
+git push -u origin feature/nueva-funcionalidad
+
+# Desarrollo y commits
+git add .
+git commit -m "feat: implementar nueva funcionalidad"
+git push origin feature/nueva-funcionalidad
+```
+
+#### Integración a Rama de Desarrollo
+Los desarrolladores crean Pull Requests desde sus ramas de feature hacia `approvals`, donde se realiza la revisión de código y testing antes de la integración.
+
+### Proceso de Promoción a Producción
+
+#### Flujo de Maintainers
+Los maintainers del proyecto gestionan la promoción de cambios desde `approvals` hacia `main`:
+
+```bash
+# Pull Request: approvals → main
+# Este proceso requiere aprobación obligatoria debido a las reglas de protección
+# El merge se realiza automáticamente después de la aprobación
+```
+
+#### Gestión de Hotfixes
+Para correcciones críticas, se implementó un flujo especial:
+
+```bash
+# Creación de hotfix desde main
+git checkout main
+git pull origin main
+git checkout -b hotfix/correccion-critica
+
+# Implementación de corrección
+git add .
+git commit -m "fix: corrección crítica de seguridad"
+git push origin hotfix/correccion-critica
+
+# Pull Request directo a main (requiere aprobación obligatoria)
+```
+
+## Sistema de Notificaciones Configurado
+
+### Notificaciones de Branch Protection
+
+Se configuraron notificaciones automáticas para monitorear el cumplimiento de las reglas de protección:
+
+1. Se accedió a **Settings** → **Notifications**
+2. Se activaron notificaciones para:
+   - Pull requests
+   - Violaciones de reglas de protección de ramas
+   - Fallos en verificaciones de estado
+
+### Configuración de Code Owners
+
+Se implementó un sistema de revisores automáticos mediante el archivo `.github/CODEOWNERS`:
+
+```bash
+# Configuración implementada
+* @martinizin
+/src/simuladores/ @equipo-simuladores
+/docs/ @equipo-documentacion
+```
+
+## Verificación de Implementación
+
+### Validación de Configuración
+
+Se verificó la correcta implementación mediante el siguiente checklist:
+
+- ✅ Rama `approvals` creada y configurada como default
+- ✅ Rama `main` protegida con reglas de branch protection
+- ✅ Repositorio configurado como público
+- ✅ Pull requests requieren aprobación para merge a main
+- ✅ Pushes directos a main están bloqueados
+- ✅ Notificaciones configuradas correctamente
+
+### Prueba del Sistema de Protección
+
+Se validó el funcionamiento de las reglas de protección intentando un push directo a main:
+
+```bash
+# Prueba realizada (debe fallar)
+git checkout main
+echo "test" > test.txt
+git add test.txt
+git commit -m "test direct push"
+git push origin main
+# Resultado: Error de violación de rama protegida (comportamiento esperado)
+```
+
+## Comandos de Referencia para el Flujo Implementado
+
+### Gestión Diaria de Ramas
+```bash
+# Ver estado de todas las ramas
+git branch -a
+
+# Trabajar en approvals
+git checkout approvals
+
+# Sincronizar approvals con main
+git checkout approvals
+git merge main
+git push origin approvals
+
+# Crear nueva rama de feature
+git checkout -b feature/nombre-feature approvals
+```
+
+### Gestión de Pull Requests
+
+El equipo utiliza GitHub CLI para agilizar la gestión de Pull Requests:
+
+```bash
+# Crear PR desde feature hacia approvals
+gh pr create --base approvals --head feature/nombre-feature
+
+# Crear PR desde approvals hacia main
+gh pr create --base main --head approvals
+```
+
+## Beneficios de la Configuración Implementada
+
+### Seguridad y Control de Calidad
+
+La configuración implementada proporciona:
+
+- **Control de acceso**: Todos los cambios a producción requieren revisión
+- **Prevención de errores**: Los pushes directos a main están bloqueados
+- **Trazabilidad**: Historial completo de cambios y aprobaciones
+- **Calidad de código**: Revisión obligatoria antes de integración
+
+### Flujo de Trabajo Eficiente Propuesto
+
+- **Rama de desarrollo estable**: `approvals` como punto de integración
+- **Proceso claro**: Desarrolladores → approvals → main
+- **Automatización**: Merge automático después de aprobación
+- **Flexibilidad**: Soporte para hotfixes cuando sea necesario
+
+---
+
+**Nota**: Esta configuración garantiza un entorno de desarrollo controlado y seguro, donde la rama `main` mantiene siempre código estable y probado, mientras que `approvals` sirve como zona de integración y testing antes de la promoción a producción.
 
 **¡Redactada por [martinizin](https://github.com/martinizin/)! 🚀**
 
